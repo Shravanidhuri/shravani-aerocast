@@ -28,7 +28,7 @@ export const SearchInput = ({ onSearch, isLoading }: SearchInputProps) => {
             placeholder="Enter city name..."
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="pl-10 h-12 glass-card border-white/20 bg-white/10 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50"
+            className="pl-10 h-12 glass-card border-white/20 bg-white/10 text-white placeholder:text-white/70 focus:ring-2 focus:ring-primary/50"
             disabled={isLoading}
           />
         </div>
