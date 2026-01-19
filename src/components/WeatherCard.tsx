@@ -1,7 +1,6 @@
 import { WeatherData } from '@/types/weather';
 import { WeatherIcon } from './WeatherIcon';
-import { Thermometer, Droplets, Wind, MapPin, Clock } from 'lucide-react';
-import { formatLastUpdated } from '@/utils/weatherApi';
+import { Thermometer, Droplets, Wind, MapPin } from 'lucide-react';
 
 interface WeatherCardProps {
   data: WeatherData;
@@ -11,18 +10,10 @@ interface WeatherCardProps {
 export const WeatherCard = ({ data, lastUpdated }: WeatherCardProps) => {
   return (
     <div className="glass-card rounded-3xl p-8 animate-fade-in">
-      {/* Location & Last Updated */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2 text-foreground/80">
-          <MapPin className="h-4 w-4" />
-          <span className="text-lg font-medium">{data.city}, {data.country}</span>
-        </div>
-        {lastUpdated && (
-          <div className="flex items-center gap-1 text-foreground/60 text-sm">
-            <Clock className="h-3 w-3" />
-            <span>Updated {formatLastUpdated(lastUpdated)}</span>
-          </div>
-        )}
+      {/* Location */}
+      <div className="flex items-center gap-2 text-foreground/80 mb-6">
+        <MapPin className="h-4 w-4" />
+        <span className="text-lg font-medium">{data.city}, {data.country}</span>
       </div>
 
       {/* Main temperature display */}
