@@ -1,3 +1,7 @@
+/**
+ * Vite Configuration for AeroCast
+ * React + TypeScript build setup with SWC compiler
+ */
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";

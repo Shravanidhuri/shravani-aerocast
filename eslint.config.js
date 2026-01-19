@@ -1,3 +1,7 @@
+/**
+ * ESLint Configuration for AeroCast
+ * Modern flat config format with TypeScript and React support
+ */
 import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
