@@ -77,9 +77,7 @@ const Index = () => {
         <div className="mb-12">
           <SearchInput
             onSearch={searchCity}
-            onGetLocation={detectLocation}
             isLoading={isLoading}
-            isLocating={isLocating}
           />
         </div>
 
@@ -113,7 +111,7 @@ const Index = () => {
                 Welcome to AeroCast
               </h2>
               <p className="text-white/70 max-w-md mx-auto">
-                Enter a city name above or click the location button to get real-time weather and air quality data.
+                Enter a city name above to get real-time weather and air quality data.
               </p>
             </div>
           )}
