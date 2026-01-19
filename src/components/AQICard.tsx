@@ -10,15 +10,15 @@ export const AQICard = ({ data }: AQICardProps) => {
   const getAQIDescription = (category: string) => {
     switch (category) {
       case 'Good':
-        return 'Air quality is satisfactory, and air pollution poses little or no risk.';
+        return 'Air quality is excellent. Ideal for outdoor activities.';
+      case 'Fair':
+        return 'Air quality is acceptable. Sensitive individuals should limit prolonged outdoor exertion.';
       case 'Moderate':
-        return 'Air quality is acceptable. Some pollutants may pose a moderate health concern.';
+        return 'Air quality is moderately polluted. Reduce outdoor activities if you experience symptoms.';
       case 'Poor':
-        return 'Members of sensitive groups may experience health effects.';
+        return 'Health alert: Everyone may experience health effects. Avoid prolonged outdoor exertion.';
       case 'Very Poor':
-        return 'Health alert: The risk of health effects is increased for everyone.';
-      case 'Severe':
-        return 'Health warning of emergency conditions. Everyone is likely to be affected.';
+        return 'Health warning: Emergency conditions. Everyone should avoid outdoor activities.';
       default:
         return 'Air quality data is being processed.';
     }
@@ -42,16 +42,26 @@ export const AQICard = ({ data }: AQICardProps) => {
       </p>
 
       {/* Pollutant details */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card rounded-2xl p-4 text-center">
-          <Gauge className="h-5 w-5 mx-auto mb-2 text-aqi-moderate" />
-          <p className="text-xs text-foreground/60 mb-1">PM2.5</p>
-          <p className="text-lg font-semibold text-foreground">{data.pm25} µg/m³</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="glass-card rounded-2xl p-3 text-center">
+          <Gauge className="h-4 w-4 mx-auto mb-1 text-aqi-moderate" />
+          <p className="text-xs text-foreground/60">PM2.5</p>
+          <p className="text-sm font-semibold text-foreground">{data.pm25} µg/m³</p>
         </div>
-        <div className="glass-card rounded-2xl p-4 text-center">
-          <Gauge className="h-5 w-5 mx-auto mb-2 text-aqi-poor" />
-          <p className="text-xs text-foreground/60 mb-1">PM10</p>
-          <p className="text-lg font-semibold text-foreground">{data.pm10} µg/m³</p>
+        <div className="glass-card rounded-2xl p-3 text-center">
+          <Gauge className="h-4 w-4 mx-auto mb-1 text-aqi-poor" />
+          <p className="text-xs text-foreground/60">PM10</p>
+          <p className="text-sm font-semibold text-foreground">{data.pm10} µg/m³</p>
+        </div>
+        <div className="glass-card rounded-2xl p-3 text-center">
+          <Gauge className="h-4 w-4 mx-auto mb-1 text-weather-cloudy" />
+          <p className="text-xs text-foreground/60">CO</p>
+          <p className="text-sm font-semibold text-foreground">{data.co} µg/m³</p>
+        </div>
+        <div className="glass-card rounded-2xl p-3 text-center">
+          <Gauge className="h-4 w-4 mx-auto mb-1 text-weather-rainy" />
+          <p className="text-xs text-foreground/60">O₃</p>
+          <p className="text-sm font-semibold text-foreground">{data.o3} µg/m³</p>
         </div>
       </div>
     </div>

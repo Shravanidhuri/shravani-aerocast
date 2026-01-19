@@ -1,166 +1,98 @@
-import { WeatherData, AQIData, LocationCoords } from '@/types/weather';
+import { supabase } from '@/integrations/supabase/client';
+import { WeatherResponse, LocationCoords } from '@/types/weather';
 
-const API_KEY = 'demo'; // Will be replaced with actual API key
+/**
+ * Fetches real-time weather and AQI data from OpenWeatherMap API
+ * via our secure backend function
+ */
+export const fetchWeatherByCity = async (city: string): Promise<WeatherResponse> => {
+  console.log(`[WeatherAPI] Fetching weather data for city: ${city}`);
+  
+  const { data, error } = await supabase.functions.invoke('weather', {
+    body: { city }
+  });
 
-// Demo data for when API key is not configured
-const getDemoWeatherData = (city: string): WeatherData => ({
-  city: city,
-  country: 'Demo',
-  temperature: 22,
-  feelsLike: 24,
-  humidity: 65,
-  windSpeed: 12,
-  condition: 'Clear',
-  description: 'Clear sky',
-  icon: '01d',
-});
-
-const getDemoAQIData = (): AQIData => ({
-  aqi: 42,
-  category: 'Good',
-  pm25: 12,
-  pm10: 25,
-});
-
-// Fetch coordinates for a city
-export const getCoordinates = async (city: string): Promise<LocationCoords> => {
-  if (API_KEY === 'demo') {
-    return { lat: 40.7128, lon: -74.0060 };
+  if (error) {
+    console.error('[WeatherAPI] Supabase function error:', error);
+    throw new Error(error.message || 'Failed to fetch weather data');
   }
 
-  const response = await fetch(
-    `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch location data');
+  if (data.error) {
+    console.error('[WeatherAPI] API error:', data.error);
+    throw new Error(data.error);
   }
 
-  const data = await response.json();
-
-  if (data.length === 0) {
-    throw new Error('City not found. Please check the spelling and try again.');
-  }
-
-  return { lat: data[0].lat, lon: data[0].lon };
+  console.log('[WeatherAPI] Weather data received:', data.weather?.city);
+  return data as WeatherResponse;
 };
 
-// Fetch weather data
-export const fetchWeatherData = async (city: string): Promise<WeatherData> => {
-  if (API_KEY === 'demo') {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return getDemoWeatherData(city);
+/**
+ * Fetches weather data using geographic coordinates
+ */
+export const fetchWeatherByCoords = async (coords: LocationCoords): Promise<WeatherResponse> => {
+  console.log(`[WeatherAPI] Fetching weather data for coords: ${coords.lat}, ${coords.lon}`);
+  
+  const { data, error } = await supabase.functions.invoke('weather', {
+    body: { lat: coords.lat, lon: coords.lon }
+  });
+
+  if (error) {
+    console.error('[WeatherAPI] Supabase function error:', error);
+    throw new Error(error.message || 'Failed to fetch weather data');
   }
 
-  const coords = await getCoordinates(city);
-
-  const response = await fetch(
-    `https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${API_KEY}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch weather data');
+  if (data.error) {
+    console.error('[WeatherAPI] API error:', data.error);
+    throw new Error(data.error);
   }
 
-  const data = await response.json();
-
-  return {
-    city: data.name,
-    country: data.sys.country,
-    temperature: Math.round(data.main.temp),
-    feelsLike: Math.round(data.main.feels_like),
-    humidity: data.main.humidity,
-    windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
-    condition: data.weather[0].main,
-    description: data.weather[0].description,
-    icon: data.weather[0].icon,
-  };
+  console.log('[WeatherAPI] Weather data received:', data.weather?.city);
+  return data as WeatherResponse;
 };
 
-// Fetch AQI data
-export const fetchAQIData = async (city: string): Promise<AQIData> => {
-  if (API_KEY === 'demo') {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    return getDemoAQIData();
-  }
-
-  const coords = await getCoordinates(city);
-
-  const response = await fetch(
-    `https://api.openweathermap.org/data/2.5/air_pollution?lat=${coords.lat}&lon=${coords.lon}&appid=${API_KEY}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch AQI data');
-  }
-
-  const data = await response.json();
-  const aqi = data.list[0].main.aqi;
-  const components = data.list[0].components;
-
-  // Map OpenWeatherMap AQI (1-5) to descriptive categories
-  const aqiCategories: Record<number, 'Good' | 'Moderate' | 'Poor' | 'Very Poor' | 'Severe'> = {
-    1: 'Good',
-    2: 'Moderate',
-    3: 'Poor',
-    4: 'Very Poor',
-    5: 'Severe',
-  };
-
-  // Convert to a more readable AQI scale (1-500)
-  const aqiScale: Record<number, number> = {
-    1: 25,
-    2: 75,
-    3: 125,
-    4: 200,
-    5: 350,
-  };
-
-  return {
-    aqi: aqiScale[aqi] || 0,
-    category: aqiCategories[aqi] || 'Good',
-    pm25: Math.round(components.pm2_5),
-    pm10: Math.round(components.pm10),
-  };
-};
-
-// Get user's current location
+/**
+ * Gets the user's current geographic location
+ */
 export const getCurrentLocation = (): Promise<LocationCoords> => {
+  console.log('[WeatherAPI] Requesting user geolocation...');
+  
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
+      console.error('[WeatherAPI] Geolocation not supported');
       reject(new Error('Geolocation is not supported by your browser'));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        resolve({
+        const coords = {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
-        });
+        };
+        console.log('[WeatherAPI] Geolocation obtained:', coords);
+        resolve(coords);
       },
       (error) => {
-        reject(new Error('Unable to retrieve your location'));
+        console.error('[WeatherAPI] Geolocation error:', error.message);
+        reject(new Error('Unable to retrieve your location. Please allow location access or enter a city manually.'));
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 // Cache for 5 minutes
       }
     );
   });
 };
 
-// Reverse geocoding to get city name from coordinates
-export const getCityFromCoords = async (coords: LocationCoords): Promise<string> => {
-  if (API_KEY === 'demo') {
-    return 'New York';
-  }
-
-  const response = await fetch(
-    `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.lat}&lon=${coords.lon}&limit=1&appid=${API_KEY}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to get city name');
-  }
-
-  const data = await response.json();
-  return data[0]?.name || 'Unknown';
+/**
+ * Formats a Unix timestamp to a readable local time string
+ */
+export const formatLastUpdated = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 };
