@@ -6,13 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface GeoLocation {
-  lat: number;
-  lon: number;
-  name: string;
-  country: string;
-}
-
 interface WeatherResponse {
   weather: WeatherData;
   aqi: AQIData;
@@ -43,6 +36,71 @@ interface AQIData {
   so2: number;
 }
 
+// Map WMO weather codes to conditions
+function getWeatherCondition(code: number): { condition: string; description: string; icon: string } {
+  const weatherCodes: Record<number, { condition: string; description: string; icon: string }> = {
+    0: { condition: 'Clear', description: 'clear sky', icon: '01d' },
+    1: { condition: 'Clear', description: 'mainly clear', icon: '01d' },
+    2: { condition: 'Clouds', description: 'partly cloudy', icon: '02d' },
+    3: { condition: 'Clouds', description: 'overcast', icon: '04d' },
+    45: { condition: 'Fog', description: 'fog', icon: '50d' },
+    48: { condition: 'Fog', description: 'depositing rime fog', icon: '50d' },
+    51: { condition: 'Drizzle', description: 'light drizzle', icon: '09d' },
+    53: { condition: 'Drizzle', description: 'moderate drizzle', icon: '09d' },
+    55: { condition: 'Drizzle', description: 'dense drizzle', icon: '09d' },
+    56: { condition: 'Drizzle', description: 'light freezing drizzle', icon: '09d' },
+    57: { condition: 'Drizzle', description: 'dense freezing drizzle', icon: '09d' },
+    61: { condition: 'Rain', description: 'slight rain', icon: '10d' },
+    63: { condition: 'Rain', description: 'moderate rain', icon: '10d' },
+    65: { condition: 'Rain', description: 'heavy rain', icon: '10d' },
+    66: { condition: 'Rain', description: 'light freezing rain', icon: '13d' },
+    67: { condition: 'Rain', description: 'heavy freezing rain', icon: '13d' },
+    71: { condition: 'Snow', description: 'slight snow fall', icon: '13d' },
+    73: { condition: 'Snow', description: 'moderate snow fall', icon: '13d' },
+    75: { condition: 'Snow', description: 'heavy snow fall', icon: '13d' },
+    77: { condition: 'Snow', description: 'snow grains', icon: '13d' },
+    80: { condition: 'Rain', description: 'slight rain showers', icon: '09d' },
+    81: { condition: 'Rain', description: 'moderate rain showers', icon: '09d' },
+    82: { condition: 'Rain', description: 'violent rain showers', icon: '09d' },
+    85: { condition: 'Snow', description: 'slight snow showers', icon: '13d' },
+    86: { condition: 'Snow', description: 'heavy snow showers', icon: '13d' },
+    95: { condition: 'Thunderstorm', description: 'thunderstorm', icon: '11d' },
+    96: { condition: 'Thunderstorm', description: 'thunderstorm with slight hail', icon: '11d' },
+    99: { condition: 'Thunderstorm', description: 'thunderstorm with heavy hail', icon: '11d' },
+  };
+  
+  return weatherCodes[code] || { condition: 'Unknown', description: 'unknown', icon: '01d' };
+}
+
+// Calculate AQI from pollutant concentrations using US EPA breakpoints
+function calculateAQI(pm25: number, pm10: number, o3: number, no2: number, so2: number, co: number): { aqi: number; category: string } {
+  // Simplified AQI calculation based on PM2.5 (primary indicator)
+  // Using US EPA breakpoints for PM2.5 (24-hour average converted to 1-5 scale)
+  let aqiValue: number;
+  
+  if (pm25 <= 12) {
+    aqiValue = 1; // Good
+  } else if (pm25 <= 35.4) {
+    aqiValue = 2; // Fair
+  } else if (pm25 <= 55.4) {
+    aqiValue = 3; // Moderate
+  } else if (pm25 <= 150.4) {
+    aqiValue = 4; // Poor
+  } else {
+    aqiValue = 5; // Very Poor
+  }
+  
+  const categories: Record<number, string> = {
+    1: 'Good',
+    2: 'Fair',
+    3: 'Moderate',
+    4: 'Poor',
+    5: 'Very Poor',
+  };
+  
+  return { aqi: aqiValue, category: categories[aqiValue] };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -50,62 +108,54 @@ serve(async (req) => {
   }
 
   try {
-    const API_KEY = Deno.env.get('OPENWEATHERMAP_API_KEY');
-    
-    if (!API_KEY) {
-      console.error('OPENWEATHERMAP_API_KEY is not configured');
-      return new Response(
-        JSON.stringify({ error: 'API key is not configured. Please add your OpenWeatherMap API key.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const { city, lat, lon } = await req.json();
     console.log(`Weather request received - city: ${city}, lat: ${lat}, lon: ${lon}`);
 
-    let coords: { lat: number; lon: number; name?: string; country?: string };
+    let coords: { lat: number; lon: number; name: string; country: string };
 
     // If lat/lon provided, use them directly (for geolocation)
     if (lat !== undefined && lon !== undefined) {
       console.log(`Using provided coordinates: ${lat}, ${lon}`);
       
-      // Reverse geocode to get city name
-      const reverseGeoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
-      console.log('Fetching reverse geocode data...');
+      // Reverse geocode to get city name using Open-Meteo geocoding
+      const reverseGeoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${lat}&longitude=${lon}&count=1&language=en&format=json`;
       
-      const reverseGeoResponse = await fetch(reverseGeoUrl);
+      // Use Nominatim for reverse geocoding (Open-Meteo doesn't support reverse geocoding directly)
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`;
+      console.log('Fetching reverse geocode data from Nominatim...');
+      
+      const reverseGeoResponse = await fetch(nominatimUrl, {
+        headers: { 'User-Agent': 'AeroCast Weather App' }
+      });
+      
       if (!reverseGeoResponse.ok) {
-        if (reverseGeoResponse.status === 401) {
-          throw new Error('Invalid API key. Please check your OpenWeatherMap API key. Note: New API keys may take up to 2 hours to activate.');
-        }
-        throw new Error('Failed to get location name');
+        console.error('Reverse geocode error:', reverseGeoResponse.status);
+        coords = { lat, lon, name: 'Unknown', country: '' };
+      } else {
+        const reverseGeoData = await reverseGeoResponse.json();
+        const address = reverseGeoData.address || {};
+        coords = {
+          lat,
+          lon,
+          name: address.city || address.town || address.village || address.municipality || 'Unknown',
+          country: address.country_code?.toUpperCase() || ''
+        };
       }
-      
-      const reverseGeoData = await reverseGeoResponse.json();
-      coords = {
-        lat,
-        lon,
-        name: reverseGeoData[0]?.name || 'Unknown',
-        country: reverseGeoData[0]?.country || ''
-      };
     } else if (city) {
-      // Geocode city name to coordinates
-      const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`;
+      // Geocode city name using Open-Meteo
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
       console.log(`Fetching geocode data for city: ${city}`);
       
       const geoResponse = await fetch(geoUrl);
       if (!geoResponse.ok) {
         console.error('Geocode API error:', geoResponse.status);
-        if (geoResponse.status === 401) {
-          throw new Error('Invalid API key. Please check your OpenWeatherMap API key. Note: New API keys may take up to 2 hours to activate.');
-        }
         throw new Error('Failed to fetch location data');
       }
 
-      const geoData: GeoLocation[] = await geoResponse.json();
+      const geoData = await geoResponse.json();
       console.log('Geocode response:', JSON.stringify(geoData));
 
-      if (!geoData || geoData.length === 0) {
+      if (!geoData.results || geoData.results.length === 0) {
         console.error('City not found:', city);
         return new Response(
           JSON.stringify({ error: `City "${city}" not found. Please check the spelling and try again.` }),
@@ -113,11 +163,12 @@ serve(async (req) => {
         );
       }
 
+      const result = geoData.results[0];
       coords = {
-        lat: geoData[0].lat,
-        lon: geoData[0].lon,
-        name: geoData[0].name,
-        country: geoData[0].country
+        lat: result.latitude,
+        lon: result.longitude,
+        name: result.name,
+        country: result.country_code || result.country || ''
       };
     } else {
       return new Response(
@@ -126,13 +177,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Coordinates resolved: ${coords.lat}, ${coords.lon}`);
+    console.log(`Coordinates resolved: ${coords.lat}, ${coords.lon} - ${coords.name}, ${coords.country}`);
 
-    // Fetch weather and AQI data in parallel
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${API_KEY}`;
-    const aqiUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${coords.lat}&lon=${coords.lon}&appid=${API_KEY}`;
+    // Fetch weather and AQI data in parallel from Open-Meteo
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;
+    const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coords.lat}&longitude=${coords.lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone`;
 
-    console.log('Fetching weather and AQI data...');
+    console.log('Fetching weather and AQI data from Open-Meteo...');
     
     const [weatherResponse, aqiResponse] = await Promise.all([
       fetch(weatherUrl),
@@ -144,53 +195,70 @@ serve(async (req) => {
       throw new Error('Failed to fetch weather data');
     }
 
-    if (!aqiResponse.ok) {
-      console.error('AQI API error:', aqiResponse.status);
-      throw new Error('Failed to fetch air quality data');
+    const weatherData = await weatherResponse.json();
+    console.log('Weather data received:', JSON.stringify(weatherData.current));
+
+    // Parse weather data
+    const current = weatherData.current;
+    const weatherCondition = getWeatherCondition(current.weather_code);
+
+    // Parse AQI data (may not always be available)
+    let aqiResult: AQIData;
+    if (aqiResponse.ok) {
+      const aqiData = await aqiResponse.json();
+      console.log('AQI data received:', JSON.stringify(aqiData.current));
+      
+      const aqiCurrent = aqiData.current;
+      const pm25 = aqiCurrent.pm2_5 || 0;
+      const pm10 = aqiCurrent.pm10 || 0;
+      const o3 = aqiCurrent.ozone || 0;
+      const no2 = aqiCurrent.nitrogen_dioxide || 0;
+      const so2 = aqiCurrent.sulphur_dioxide || 0;
+      const co = aqiCurrent.carbon_monoxide || 0;
+      
+      const { aqi, category } = calculateAQI(pm25, pm10, o3, no2, so2, co);
+      
+      aqiResult = {
+        aqi,
+        category,
+        pm25: Math.round(pm25 * 10) / 10,
+        pm10: Math.round(pm10 * 10) / 10,
+        co: Math.round(co * 10) / 10,
+        no2: Math.round(no2 * 10) / 10,
+        o3: Math.round(o3 * 10) / 10,
+        so2: Math.round(so2 * 10) / 10,
+      };
+    } else {
+      console.log('AQI data not available, using defaults');
+      aqiResult = {
+        aqi: 1,
+        category: 'Good',
+        pm25: 0,
+        pm10: 0,
+        co: 0,
+        no2: 0,
+        o3: 0,
+        so2: 0,
+      };
     }
 
-    const weatherData = await weatherResponse.json();
-    const aqiData = await aqiResponse.json();
-
-    console.log('Weather data received:', JSON.stringify(weatherData.main));
-    console.log('AQI data received:', JSON.stringify(aqiData.list[0]));
-
-    // Map OpenWeatherMap AQI (1-5) to descriptive categories
-    const aqiValue = aqiData.list[0].main.aqi;
-    const aqiCategories: Record<number, string> = {
-      1: 'Good',
-      2: 'Fair',
-      3: 'Moderate',
-      4: 'Poor',
-      5: 'Very Poor',
-    };
-
-    const components = aqiData.list[0].components;
+    const timestamp = Math.floor(new Date(current.time).getTime() / 1000);
 
     const response: WeatherResponse = {
       weather: {
-        city: coords.name || weatherData.name,
-        country: coords.country || weatherData.sys.country,
-        temperature: Math.round(weatherData.main.temp),
-        feelsLike: Math.round(weatherData.main.feels_like),
-        humidity: weatherData.main.humidity,
-        windSpeed: Math.round(weatherData.wind.speed * 3.6), // Convert m/s to km/h
-        condition: weatherData.weather[0].main,
-        description: weatherData.weather[0].description,
-        icon: weatherData.weather[0].icon,
-        timestamp: weatherData.dt,
+        city: coords.name,
+        country: coords.country,
+        temperature: Math.round(current.temperature_2m),
+        feelsLike: Math.round(current.apparent_temperature),
+        humidity: current.relative_humidity_2m,
+        windSpeed: Math.round(current.wind_speed_10m), // Already in km/h
+        condition: weatherCondition.condition,
+        description: weatherCondition.description,
+        icon: weatherCondition.icon,
+        timestamp,
       },
-      aqi: {
-        aqi: aqiValue,
-        category: aqiCategories[aqiValue] || 'Unknown',
-        pm25: Math.round(components.pm2_5 * 10) / 10,
-        pm10: Math.round(components.pm10 * 10) / 10,
-        co: Math.round(components.co * 10) / 10,
-        no2: Math.round(components.no2 * 10) / 10,
-        o3: Math.round(components.o3 * 10) / 10,
-        so2: Math.round(components.so2 * 10) / 10,
-      },
-      lastUpdated: new Date(weatherData.dt * 1000).toISOString(),
+      aqi: aqiResult,
+      lastUpdated: new Date(current.time).toISOString(),
     };
 
     console.log('Sending response for:', response.weather.city);
