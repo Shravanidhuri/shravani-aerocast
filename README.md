@@ -3,7 +3,7 @@ Live Demo: https://shravani-aerocast.lovable.app/
 <!-- ================================================ -->
 
 
-# 🛩️ Shravani-Aerocast
+# 🛩️ Aerocast
 
 A modern, responsive web application built with **React**, **TypeScript**, **Vite**, and **Tailwind CSS**.  
 This project serves as the frontend interface for the **Aerocast** experience — a sleek and performant platform for delivering aviation-related data.
