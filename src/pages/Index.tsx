@@ -120,9 +120,9 @@ const Index = () => {
         </div>
 
         {/* Footer */}
-        <footer className="text-center mt-16 text-white/50 text-sm">
+        <footer className="text-center mt-16 text-white/60 text-sm">
           <p>
-            Powered by OpenWeatherMap API • Real-time data
+            Made With ❤️ By Shravani Dhuri
           </p>
         </footer>
       </div>
