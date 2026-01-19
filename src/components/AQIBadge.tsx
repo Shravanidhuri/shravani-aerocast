@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 interface AQIBadgeProps {
-  category: 'Good' | 'Moderate' | 'Poor' | 'Very Poor' | 'Severe';
+  category: 'Good' | 'Fair' | 'Moderate' | 'Poor' | 'Very Poor';
   aqi: number;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -11,13 +11,13 @@ export const AQIBadge = ({ category, aqi, size = 'md' }: AQIBadgeProps) => {
     switch (category) {
       case 'Good':
         return 'bg-aqi-good text-white';
-      case 'Moderate':
+      case 'Fair':
         return 'bg-aqi-moderate text-foreground';
-      case 'Poor':
+      case 'Moderate':
         return 'bg-aqi-poor text-white';
-      case 'Very Poor':
+      case 'Poor':
         return 'bg-aqi-very-poor text-white';
-      case 'Severe':
+      case 'Very Poor':
         return 'bg-aqi-severe text-white';
       default:
         return 'bg-muted text-muted-foreground';

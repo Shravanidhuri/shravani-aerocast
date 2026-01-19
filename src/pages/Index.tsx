@@ -10,6 +10,7 @@ const Index = () => {
   const {
     weatherData,
     aqiData,
+    lastUpdated,
     isLoading,
     isLocating,
     error,
@@ -32,6 +33,12 @@ const Index = () => {
         return 'from-blue-200 via-slate-200 to-gray-300';
       default:
         return 'from-blue-500 via-indigo-500 to-purple-600';
+    }
+  };
+
+  const handleRetry = () => {
+    if (weatherData?.city) {
+      searchCity(weatherData.city);
     }
   };
 
@@ -62,7 +69,7 @@ const Index = () => {
             </h1>
           </div>
           <p className="text-white/80 text-lg max-w-md mx-auto">
-            Check real-time weather conditions and air quality for any city worldwide
+            Real-time weather conditions and air quality for any city worldwide
           </p>
         </header>
 
@@ -81,7 +88,7 @@ const Index = () => {
           {error && (
             <ErrorMessage
               message={error}
-              onRetry={() => weatherData && searchCity(weatherData.city)}
+              onRetry={weatherData ? handleRetry : undefined}
             />
           )}
 
@@ -94,7 +101,7 @@ const Index = () => {
 
           {weatherData && aqiData && !isLoading && !error && (
             <div className="grid md:grid-cols-2 gap-6">
-              <WeatherCard data={weatherData} />
+              <WeatherCard data={weatherData} lastUpdated={lastUpdated} />
               <AQICard data={aqiData} />
             </div>
           )}
@@ -106,7 +113,7 @@ const Index = () => {
                 Welcome to Weather & AQI
               </h2>
               <p className="text-white/70 max-w-md mx-auto">
-                Enter a city name above or click the location button to get started with weather and air quality information.
+                Enter a city name above or click the location button to get real-time weather and air quality data.
               </p>
             </div>
           )}
@@ -115,7 +122,7 @@ const Index = () => {
         {/* Footer */}
         <footer className="text-center mt-16 text-white/50 text-sm">
           <p>
-            Powered by OpenWeatherMap API • Built with React & Tailwind CSS
+            Powered by OpenWeatherMap API • Real-time data
           </p>
         </footer>
       </div>
