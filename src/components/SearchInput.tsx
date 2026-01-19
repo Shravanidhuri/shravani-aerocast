@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface SearchInputProps {
   onSearch: (city: string) => void;
-  onGetLocation: () => void;
   isLoading: boolean;
-  isLocating: boolean;
 }
 
-export const SearchInput = ({ onSearch, onGetLocation, isLoading, isLocating }: SearchInputProps) => {
+export const SearchInput = ({ onSearch, isLoading }: SearchInputProps) => {
   const [city, setCity] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -43,20 +41,6 @@ export const SearchInput = ({ onSearch, onGetLocation, isLoading, isLocating }: 
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             'Search'
-          )}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onGetLocation}
-          disabled={isLocating || isLoading}
-          className="h-12 px-4 glass-card border-white/20 hover:bg-white/20"
-          title="Use my location"
-        >
-          {isLocating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MapPin className="h-4 w-4" />
           )}
         </Button>
       </div>
