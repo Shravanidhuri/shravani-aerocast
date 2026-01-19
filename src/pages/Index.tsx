@@ -64,8 +64,8 @@ const Index = () => {
         <header className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Cloud className="w-10 h-10 text-white drop-shadow-lg" />
-            <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
-              Weather & AQI
+            <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg tracking-tight">
+              AeroCast
             </h1>
           </div>
           <p className="text-white/80 text-lg max-w-md mx-auto">
@@ -110,7 +110,7 @@ const Index = () => {
             <div className="glass-card rounded-3xl p-12 text-center animate-fade-in">
               <Cloud className="w-20 h-20 mx-auto mb-6 text-white/60" />
               <h2 className="text-2xl font-semibold text-white mb-3">
-                Welcome to Weather & AQI
+                Welcome to AeroCast
               </h2>
               <p className="text-white/70 max-w-md mx-auto">
                 Enter a city name above or click the location button to get real-time weather and air quality data.
